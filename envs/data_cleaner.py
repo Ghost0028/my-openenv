@@ -27,7 +27,7 @@ class DataCleanerEnv:
         }
         """
         self.step_count+=1
-        ground_truth = self.current_row["clean_entry"]
+        ground_truth = self.current_row["ground_truth"]
         field = action["field"]
         self.current_values[field]=action["new_value"] 
         correct_fields=sum(
