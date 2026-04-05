@@ -29,6 +29,10 @@ scheduling_env = SchedulerEnv(scheduling_dataset)
 
 app = FastAPI()
 
+@app.get("/")
+def read_root():
+    return {"message": "OpenEnv demo is running!"}
+
 # Email endpoints
 @app.post("/email/reset")
 def reset_email():
