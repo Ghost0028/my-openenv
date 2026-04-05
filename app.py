@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from envs.email_triage import EmailTriageEnv, EmailAction
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
+from fastapi.responses import RedirectResponse
+
+
+
 
 # Example datasets
 email_dataset = [
@@ -31,7 +35,7 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "OpenEnv demo is running!"}
+    return RedirectResponse(url="/docs")
 
 # Email endpoints
 @app.post("/email/reset")
