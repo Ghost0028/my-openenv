@@ -1,3 +1,14 @@
+---
+title: "OpenEnv Demo - Email, Cleaner, Scheduler"
+emoji: 📬🧹📅
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # Triaging, Cleaning, and Scheduling Environments
 
 This repository contains three **OpenEnv‑compliant environments** designed for reinforcement learning agents:
