@@ -1,15 +1,100 @@
-name: TRY_ENV
-description: Environment with three real-world tasks
-tasks:
-  - name: email_triage
-    difficulty: easy
-    action_space: category
-    observation_space: subject, body, sender, timestamp
-  - name: data_cleaning
-    difficulty: medium
-    action_space: field, new_value
-    observation_space: raw_entry dict
-  - name: scheduling
-    difficulty: hard
-    action_space: field, new_value
-    observation_space: raw_request string + current_values dict
+name: "triage_clean_schedule_env"
+description: "An OpenEnv-compliant environment with three tasks: email triage, data cleaning, and scheduling."
+tags: ["openenv", "fastapi", "containerized"]
+
+environments:
+  - id: "email"
+    description: "Classify emails into categories (urgent, personal, spam, informational)."
+    difficulty: "easy"
+    reset_endpoint: "/email/reset"
+    step_endpoint: "/email/step"
+    action_schema: "EmailAction"
+    observation_schema: "EmailObservation"
+    state_schema: "EmailState"
+
+  - id: "cleaning"
+    description: "Correct noisy data entries by proposing cleaned values for fields."
+    difficulty: "medium"
+    reset_endpoint: "/cleaning/reset"
+    step_endpoint: "/cleaning/step"
+    action_schema: "CleanerAction"
+    observation_schema: "CleanerObservation"
+    state_schema: "CleanerState"
+
+  - id: "scheduling"
+    description: "Extract structured details (date, time, attendees, location) from scheduling requests."
+    difficulty: "hard"
+    reset_endpoint: "/scheduling/reset"
+    step_endpoint: "/scheduling/step"
+    action_schema: "SchedulerAction"
+    observation_schema: "SchedulerObservation"
+    state_schema: "SchedulerState"
+
+schemas:
+  EmailAction:
+    type: object
+    properties:
+      category:
+        type: string
+        enum: ["urgent", "personal", "spam", "informational"]
+
+  EmailObservation:
+    type: object
+    properties:
+      subject: { type: string }
+      body: { type: string }
+      sender: { type: string }
+      timestamp: { type: string }
+      reward: { type: number }
+      done: { type: boolean }
+      info: { type: object }
+
+  EmailState:
+    type: object
+    properties:
+      episode_id: { type: string }
+      step_count: { type: integer }
+      done: { type: boolean }
+
+  CleanerAction:
+    type: object
+    properties:
+      field: { type: string }
+      new_value: { type: string }
+
+  CleanerObservation:
+    type: object
+    properties:
+      current_values: { type: object }
+      reward: { type: number }
+      done: { type: boolean }
+      info: { type: object }
+
+  CleanerState:
+    type: object
+    properties:
+      episode_id: { type: string }
+      step_count: { type: integer }
+      done: { type: boolean }
+
+  SchedulerAction:
+    type: object
+    properties:
+      field: { type: string }
+      new_value: {}
+
+  SchedulerObservation:
+    type: object
+    properties:
+      raw_string: { type: string }
+      current_values: { type: object }
+      reward: { type: number }
+      done: { type: boolean }
+      info: { type: object }
+
+  SchedulerState:
+    type: object
+    properties:
+      episode_id: { type: string }
+      step_count: { type: integer }
+      done: { type: boolean }

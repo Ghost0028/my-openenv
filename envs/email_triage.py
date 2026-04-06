@@ -20,7 +20,10 @@ class EmailTriageEnv:
             subject=self.current_email["subject"],
             body=self.current_email["body"],
             sender=self.current_email["sender"],
-            timestamp=self.current_email["timestamp"]
+            timestamp=self.current_email["timestamp"],
+            reward=0.0,
+            done = self.done,
+            info= {"ground_truth": self.current_email["label"]}
         )
 
     def step(self, action: EmailAction)->dict:
@@ -29,18 +32,16 @@ class EmailTriageEnv:
         reward = grade_email(action.category, ground_truth)
         
         self.done= True
-        return {
-            "observation": EmailObservation(
+        return EmailObservation(
                 subject=self.current_email["subject"],
                 body=self.current_email["body"],
                 sender=self.current_email["sender"],
-                timestamp=self.current_email["timestamp"]
-            ),
-            "reward":reward,
-            "done": self.done,
-            "info": {"ground_truth":ground_truth}
+                timestamp=self.current_email["timestamp"],
+                reward= reward,
+                done= self.done,
+                info= {"ground_truth":ground_truth}
 
-        }   
+        )   
     def state(self)-> EmailState:
         return EmailState(
             episode_id=self.episode_id,

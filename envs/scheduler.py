@@ -1,6 +1,6 @@
 import random 
 import uuid
-
+from core.model import SchedulerAction, SchedulerObservation, SchedulerState
 class SchedulerEnv:
     def __init__(self,dataset):
         self.dataset= dataset
@@ -10,16 +10,22 @@ class SchedulerEnv:
         self.episode_id =None
         self.current_values={}
         
-    def reset(self):
+    def reset(self)->SchedulerObservation:
         self.current_row=random.choice(self.dataset)
         self.episode_id=str(uuid.uuid4())
         self.step_count=0
         self.done=False  
         self.raw_string=self.current_row["raw_request"]
         self.current_values={}
-        return {"raw_request":self.raw_string}    
+        return SchedulerObservation(
+            raw_string=self.raw_string,
+            current_values=self.current_values,
+            done=self.done,
+            info= {"ground_truth": self.current_row["ground_truth"]},
+            reward=0.0
+        )  
     
-    def step(self, action)->dict:
+    def step(self, action: SchedulerAction)->SchedulerObservation:
         """
         action is expected to be a dict:
         {
@@ -29,8 +35,8 @@ class SchedulerEnv:
         """
         self.step_count+=1
         ground_truth = self.current_row["ground_truth"]
-        field = action["field"]
-        self.current_values[field]=action["new_value"] 
+        field = action.field
+        self.current_values[field]=action.new_value
         correct_fields=sum(
             1 for k in ground_truth
             if self.current_values.get(k)==ground_truth[k]
@@ -39,19 +45,17 @@ class SchedulerEnv:
 
         if reward ==1.0:
             self.done=True
-        return {
-            "observation":{ 
-                "raw_request": self.raw_string ,
-                "current_values": dict(self.current_values)
-            },
-            "reward": reward,
-            "done": self.done,
-            "info": {"ground_truth": ground_truth}
-        }
+        return SchedulerObservation(
+            raw_string=self.raw_string,
+            current_values=self.current_values,
+            done=self.done,
+            info= {"ground_truth": ground_truth},
+            reward=reward
+        )  
 
     def state(self):
-        return {
-            "episode_id": self.episode_id,
-            "step_count": self.step_count,
-            "done": self.done
-        }    
+        return  SchedulerState(
+            episode_id= self.episode_id,
+            step_count= self.step_count,
+            done= self.done
+        ) 

@@ -2,7 +2,7 @@ import random
 from envs.email_triage import EmailTriageEnv
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
-from core.model import EmailAction
+from core.model import EmailAction, CleanerAction, SchedulerAction
 
 # Example datasets
 email_dataset = [
@@ -25,7 +25,7 @@ email_dataset = [
 cleaning_dataset = [
     {
         "raw_entry": {"name": "john DOE", "phone": "123-456-7890"},
-        "clean_entry": {"name": "John Doe", "phone": "1234567890"}
+        "ground_truth": {"name": "John Doe", "phone": "1234567890"}
     }
 ]
 
@@ -52,20 +52,21 @@ def run_email_baseline():
     # Perfect agent: always picks the correct category
     action = EmailAction(category=ground_truth)
     result = email_env.step(action)
-    return result["reward"]
+    print(f"[Email] reward={result.reward}, done={result.done}")
+    return result.reward
 
 def run_cleaning_baseline():
     obs = cleaning_env.reset()
-    ground_truth = cleaning_env.current_row["clean_entry"]
+    ground_truth = cleaning_env.current_row["ground_truth"]
 
     # Fill fields one by one with correct values
     for field, true_value in ground_truth.items():
-        action = {"field": field, "new_value": true_value}
+        action = CleanerAction(field=field, new_value=true_value)
         result = cleaning_env.step(action)
-        print(f"[Cleaner] Step {cleaning_env.step_count}: reward={result['reward']}, done={result['done']}")
-        if result["done"]:
+        print(f"[Cleaner] Step {cleaning_env.step_count}: reward={result.reward}, done={result.done}")
+        if result.done:
             break
-    return result["reward"]
+    return result.reward
 
 def run_scheduling_baseline():
     obs = scheduling_env.reset()
@@ -73,12 +74,12 @@ def run_scheduling_baseline():
 
     # Fill fields one by one with correct values
     for field, true_value in ground_truth.items():
-        action = {"field": field, "new_value": true_value}
+        action = SchedulerAction(field=field, new_value=true_value)
         result = scheduling_env.step(action)
-        print(f"[Scheduler] Step {scheduling_env.step_count}: reward={result['reward']}, done={result['done']}")
-        if result["done"]:
+        print(f"[Scheduler] Step {scheduling_env.step_count}: reward={result.reward}, done={result.done}")
+        if result.done:
             break
-    return result["reward"]
+    return result.reward
 
 if __name__ == "__main__":
     # Run multiple episodes for reproducibility

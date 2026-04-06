@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from envs.email_triage import EmailTriageEnv, EmailAction
+from envs.email_triage import EmailTriageEnv
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
 from fastapi.responses import RedirectResponse
-
+from core.model import EmailAction, CleanerAction, SchedulerAction
 
 
 
@@ -52,7 +52,7 @@ def reset_cleaning():
     return cleaning_env.reset()
 
 @app.post("/cleaning/step")
-def step_cleaning(action: dict):
+def step_cleaning(action: CleanerAction):
     return cleaning_env.step(action)
 
 # Scheduling endpoints
@@ -61,5 +61,5 @@ def reset_scheduling():
     return scheduling_env.reset()
 
 @app.post("/scheduling/step")
-def step_scheduling(action: dict):
+def step_scheduling(action: SchedulerAction):
     return scheduling_env.step(action)
