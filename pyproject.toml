@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv_demo"
+version = "0.1.0"
+description = "OpenEnv demo environment with email triage, data cleaning, and scheduling tasks"
+authors = [{ name = "Srish" }]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openenv-core",
+    "openai"
+]
