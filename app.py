@@ -1,13 +1,10 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from envs.email_triage import EmailTriageEnv
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
-from fastapi.responses import RedirectResponse
 from core.model import EmailAction, CleanerAction, SchedulerAction
 
-
-
-# Example datasets
 email_dataset = [
     {"subject": "Meeting tomorrow", "body": "Don't forget the 10 AM meeting.",
      "sender": "boss@example.com", "timestamp": "2026-04-03T09:00:00", "label": "urgent"},
@@ -26,7 +23,6 @@ scheduling_dataset = [
                       "attendees": ["John"], "location": "conference room"}}
 ]
 
-# Initialize environments
 email_env = EmailTriageEnv(email_dataset)
 cleaning_env = DataCleanerEnv(cleaning_dataset)
 scheduling_env = SchedulerEnv(scheduling_dataset)
@@ -37,7 +33,31 @@ app = FastAPI()
 def read_root():
     return RedirectResponse(url="/docs")
 
-# Email endpoints
+@app.post("/reset")
+def reset_all():
+    email_env.reset()
+    cleaning_env.reset()
+    scheduling_env.reset()
+    return {"status": "ok"}
+
+@app.post("/step")
+def step_all(action: dict):
+    if "category" in action:
+        return email_env.step(EmailAction(**action))
+    elif "field" in action:
+        return cleaning_env.step(CleanerAction(**action))
+    elif "time" in action or "attendees" in action or "location" in action:
+        return scheduling_env.step(SchedulerAction(**action))
+    return {"error": "Unknown action"}
+
+@app.get("/state")
+def state_all():
+    return {
+        "email": email_env.current_email,
+        "cleaning": cleaning_env.current_row,
+        "scheduling": scheduling_env.current_row,
+    }
+
 @app.post("/email/reset")
 def reset_email():
     return email_env.reset()
@@ -46,7 +66,6 @@ def reset_email():
 def step_email(action: EmailAction):
     return email_env.step(action)
 
-# Cleaning endpoints
 @app.post("/cleaning/reset")
 def reset_cleaning():
     return cleaning_env.reset()
@@ -55,7 +74,6 @@ def reset_cleaning():
 def step_cleaning(action: CleanerAction):
     return cleaning_env.step(action)
 
-# Scheduling endpoints
 @app.post("/scheduling/reset")
 def reset_scheduling():
     return scheduling_env.reset()
