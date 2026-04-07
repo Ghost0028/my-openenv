@@ -1,44 +1,36 @@
-import random
+import os
+from openai import OpenAI
 from envs.email_triage import EmailTriageEnv
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
 from core.model import EmailAction, CleanerAction, SchedulerAction
 
+# Environment variables with safe defaults
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+client = None
+if HF_TOKEN:
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+
 # Example datasets
 email_dataset = [
-    {
-        "subject": "Meeting tomorrow",
-        "body": "Don't forget the 10 AM meeting.",
-        "sender": "boss@example.com",
-        "timestamp": "2026-04-03T09:00:00",
-        "label": "urgent"
-    },
-    {
-        "subject": "Win a free iPhone!",
-        "body": "Click here to claim your prize.",
-        "sender": "scam@example.com",
-        "timestamp": "2026-04-02T14:30:00",
-        "label": "spam"
-    }
+    {"subject": "Meeting tomorrow", "body": "Don't forget the 10 AM meeting.",
+     "sender": "boss@example.com", "timestamp": "2026-04-03T09:00:00", "label": "urgent"},
+    {"subject": "Win a free iPhone!", "body": "Click here to claim your prize.",
+     "sender": "scam@example.com", "timestamp": "2026-04-02T14:30:00", "label": "spam"}
 ]
 
 cleaning_dataset = [
-    {
-        "raw_entry": {"name": "john DOE", "phone": "123-456-7890"},
-        "ground_truth": {"name": "John Doe", "phone": "1234567890"}
-    }
+    {"raw_entry": {"name": "john DOE", "phone": "123-456-7890"},
+     "ground_truth": {"name": "John Doe", "phone": "1234567890"}}
 ]
 
 scheduling_dataset = [
-    {
-        "raw_request": "Meet John tomorrow afternoon in conference room",
-        "ground_truth": {
-            "date": "2026-04-06",
-            "time": "15:00",
-            "attendees": ["John"],
-            "location": "conference room"
-        }
-    }
+    {"raw_request": "Meet John tomorrow afternoon in conference room",
+     "ground_truth": {"date": "2026-04-06", "time": "15:00",
+                      "attendees": ["John"], "location": "conference room"}}
 ]
 
 # Initialize environments
@@ -46,52 +38,61 @@ email_env = EmailTriageEnv(email_dataset)
 cleaning_env = DataCleanerEnv(cleaning_dataset)
 scheduling_env = SchedulerEnv(scheduling_dataset)
 
-def run_email_baseline():
+def run_email_episode():
+    rewards, steps = [], 0
+    print(f"[START] task=email env=openenv_demo model={MODEL_NAME}")
     obs = email_env.reset()
-    ground_truth = email_env.current_email["label"]
-    # Perfect agent: always picks the correct category
-    action = EmailAction(category=ground_truth)
+    gt = email_env.current_email["label"]
+    action = EmailAction(category=gt)
     result = email_env.step(action)
-    print(f"[Email] reward={result.reward}, done={result.done}")
-    return result.reward
+    steps += 1
+    rewards.append(result.reward)
+    print(f"[STEP] step={steps} action={action.category} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
+    score = min(max(sum(rewards), 0.0), 1.0)
+    success = result.done and score > 0
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
+    return score
 
-def run_cleaning_baseline():
+def run_cleaning_episode():
+    rewards, steps = [], 0
+    print(f"[START] task=cleaning env=openenv_demo model={MODEL_NAME}")
     obs = cleaning_env.reset()
-    ground_truth = cleaning_env.current_row["ground_truth"]
-
-    # Fill fields one by one with correct values
-    for field, true_value in ground_truth.items():
-        action = CleanerAction(field=field, new_value=true_value)
+    gt = cleaning_env.current_row["ground_truth"]
+    for field, val in gt.items():
+        action = CleanerAction(field=field, new_value=val)
         result = cleaning_env.step(action)
-        print(f"[Cleaner] Step {cleaning_env.step_count}: reward={result.reward}, done={result.done}")
+        steps += 1
+        rewards.append(result.reward)
+        print(f"[STEP] step={steps} action={field}:{val} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
         if result.done:
             break
-    return result.reward
+    score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
+    success = result.done and score > 0
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
+    return score
 
-def run_scheduling_baseline():
+def run_scheduling_episode():
+    rewards, steps = [], 0
+    print(f"[START] task=scheduling env=openenv_demo model={MODEL_NAME}")
     obs = scheduling_env.reset()
-    ground_truth = scheduling_env.current_row["ground_truth"]
-
-    # Fill fields one by one with correct values
-    for field, true_value in ground_truth.items():
-        action = SchedulerAction(field=field, new_value=true_value)
+    gt = scheduling_env.current_row["ground_truth"]
+    for field, val in gt.items():
+        action = SchedulerAction(field=field, new_value=val)
         result = scheduling_env.step(action)
-        print(f"[Scheduler] Step {scheduling_env.step_count}: reward={result.reward}, done={result.done}")
+        steps += 1
+        rewards.append(result.reward)
+        print(f"[STEP] step={steps} action={field}:{val} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
         if result.done:
             break
-    return result.reward
+    score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
+    success = result.done and score > 0
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
+    return score
 
 if __name__ == "__main__":
-    # Run multiple episodes for reproducibility
-    episodes = 5
-    scores = {"email_triage": [], "data_cleaning": [], "scheduling": []}
-
-    for _ in range(episodes):
-        scores["email_triage"].append(run_email_baseline())
-        scores["data_cleaning"].append(run_cleaning_baseline())
-        scores["scheduling"].append(run_scheduling_baseline())
-
-    avg_scores = {task: sum(vals)/len(vals) for task, vals in scores.items()}
-    print("\nBaseline average scores over", episodes, "episodes:")
-    for task, score in avg_scores.items():
-        print(f"{task}: {score:.2f}")
+    scores = {
+        "email": run_email_episode(),
+        "cleaning": run_cleaning_episode(),
+        "scheduling": run_scheduling_episode()
+    }
+    print("Final Scores:", scores)
