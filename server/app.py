@@ -4,6 +4,7 @@ from envs.email_triage import EmailTriageEnv
 from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
 from core.model import EmailAction, CleanerAction, SchedulerAction
+import uvicorn
 
 email_dataset = [
     {"subject": "Meeting tomorrow", "body": "Don't forget the 10 AM meeting.",
@@ -81,3 +82,10 @@ def reset_scheduling():
 @app.post("/scheduling/step")
 def step_scheduling(action: SchedulerAction):
     return scheduling_env.step(action)
+
+def main():
+    """Main entry point for running the FastAPI app."""
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
+
+if __name__ == "__main__":
+    main()
