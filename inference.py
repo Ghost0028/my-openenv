@@ -47,7 +47,7 @@ def run_email_episode():
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": "Classify the email as urgent or spam."},
-            {"role": "user", "content": f"Subject: {obs['subject']}\nBody: {obs['body']}"}
+            {"role": "user", "content": f"Subject: {obs.subject}\nBody: {obs.body}"}
         ]
     )
     predicted = response.choices[0].message.content.strip().lower()
@@ -74,7 +74,7 @@ def run_cleaning_episode():
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "Normalize the field value."},
-                {"role": "user", "content": f"Raw entry: {obs['raw_entry'][field]}"}
+                {"role": "user", "content": f"Raw entry: {obs.raw_entry[field]}"}
             ]
         )
         predicted = response.choices[0].message.content.strip()
@@ -104,7 +104,7 @@ def run_scheduling_episode():
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "Extract scheduling details."},
-                {"role": "user", "content": f"Request: {obs['raw_request']}\nField: {field}"}
+                {"role": "user", "content": f"Request: {obs.raw_request}\nField: {field}"}
             ]
         )
         predicted = response.choices[0].message.content.strip()
