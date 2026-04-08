@@ -6,13 +6,14 @@ from envs.scheduler import SchedulerEnv
 from core.model import EmailAction, CleanerAction, SchedulerAction
 
 # Environment variables with safe defaults
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+API_BASE_URL = os.environ["API_BASE_URL"]
+API_KEY = os.environ["API_KEY"]
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
-HF_TOKEN = os.getenv("HF_TOKEN")
 
-client = None
-if HF_TOKEN:
-    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=API_KEY
+)
 
 # Example datasets
 email_dataset = [
