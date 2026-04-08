@@ -5,15 +5,13 @@ from envs.data_cleaner import DataCleanerEnv
 from envs.scheduler import SchedulerEnv
 from core.model import EmailAction, CleanerAction, SchedulerAction
 
-# Environment variables with safe defaults
+# Environment variables injected by validator
 API_BASE_URL = os.environ["API_BASE_URL"]
 API_KEY = os.environ["API_KEY"]
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
 
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=API_KEY
-)
+# Initialize OpenAI client with proxy
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 # Example datasets
 email_dataset = [
@@ -43,8 +41,18 @@ def run_email_episode():
     rewards, steps = [], 0
     print(f"[START] task=email env=openenv_demo model={MODEL_NAME}")
     obs = email_env.reset()
-    gt = email_env.current_email["label"]
-    action = EmailAction(category=gt)
+
+    # Call LLM to classify email
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": "Classify the email as urgent or spam."},
+            {"role": "user", "content": f"Subject: {obs['subject']}\nBody: {obs['body']}"}
+        ]
+    )
+    predicted = response.choices[0].message.content.strip().lower()
+
+    action = EmailAction(category=predicted)
     result = email_env.step(action)
     steps += 1
     rewards.append(result.reward)
@@ -59,14 +67,26 @@ def run_cleaning_episode():
     print(f"[START] task=cleaning env=openenv_demo model={MODEL_NAME}")
     obs = cleaning_env.reset()
     gt = cleaning_env.current_row["ground_truth"]
-    for field, val in gt.items():
-        action = CleanerAction(field=field, new_value=val)
+
+    for field in gt.keys():
+        # Ask LLM to normalize the field
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "Normalize the field value."},
+                {"role": "user", "content": f"Raw entry: {obs['raw_entry'][field]}"}
+            ]
+        )
+        predicted = response.choices[0].message.content.strip()
+
+        action = CleanerAction(field=field, new_value=predicted)
         result = cleaning_env.step(action)
         steps += 1
         rewards.append(result.reward)
-        print(f"[STEP] step={steps} action={field}:{val} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
+        print(f"[STEP] step={steps} action={field}:{predicted} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
         if result.done:
             break
+
     score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
     success = result.done and score > 0
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
@@ -77,14 +97,26 @@ def run_scheduling_episode():
     print(f"[START] task=scheduling env=openenv_demo model={MODEL_NAME}")
     obs = scheduling_env.reset()
     gt = scheduling_env.current_row["ground_truth"]
-    for field, val in gt.items():
-        action = SchedulerAction(field=field, new_value=val)
+
+    for field in gt.keys():
+        # Ask LLM to extract scheduling info
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "Extract scheduling details."},
+                {"role": "user", "content": f"Request: {obs['raw_request']}\nField: {field}"}
+            ]
+        )
+        predicted = response.choices[0].message.content.strip()
+
+        action = SchedulerAction(field=field, new_value=predicted)
         result = scheduling_env.step(action)
         steps += 1
         rewards.append(result.reward)
-        print(f"[STEP] step={steps} action={field}:{val} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
+        print(f"[STEP] step={steps} action={field}:{predicted} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
         if result.done:
             break
+
     score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
     success = result.done and score > 0
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
