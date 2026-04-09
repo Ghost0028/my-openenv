@@ -102,7 +102,7 @@ def run_scheduling_episode():
     rewards, steps = [], 0
     print(f"[START] task=scheduling env=openenv_demo model={MODEL_NAME}")
     obs = scheduling_env.reset()
-    gt = scheduling_env.current_row.ground_truth
+    gt = scheduling_env.current_row["ground_truth"]
 
     for field in gt.keys():
         try:
