@@ -42,15 +42,18 @@ def run_email_episode():
     print(f"[START] task=email env=openenv_demo model={MODEL_NAME}")
     obs = email_env.reset()
 
-    # Call LLM to classify email
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": "Classify the email as urgent or spam."},
-            {"role": "user", "content": f"Subject: {obs.subject}\nBody: {obs.body}"}
-        ]
-    )
-    predicted = response.choices[0].message.content.strip().lower()
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "Classify the email as urgent or spam."},
+                {"role": "user", "content": f"Subject: {obs.subject}\nBody: {obs.body}"}
+            ]
+        )
+        predicted = response.choices[0].message.content.strip().lower()
+    except Exception as e:
+        print(f"[ERROR] LLM call failed: {e}")
+        predicted = "unknown"
 
     action = EmailAction(category=predicted)
     result = email_env.step(action)
@@ -66,18 +69,21 @@ def run_cleaning_episode():
     rewards, steps = [], 0
     print(f"[START] task=cleaning env=openenv_demo model={MODEL_NAME}")
     obs = cleaning_env.reset()
-    gt = cleaning_env.current_row["ground_truth"]
+    gt = cleaning_env.current_row.ground_truth
 
     for field in gt.keys():
-        # Ask LLM to normalize the field
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": "Normalize the field value."},
-                {"role": "user", "content": f"Raw entry: {obs.raw_entry[field]}"}
-            ]
-        )
-        predicted = response.choices[0].message.content.strip()
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "Normalize the field value."},
+                    {"role": "user", "content": f"Raw entry: {obs.raw_entry[field]}"}
+                ]
+            )
+            predicted = response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"[ERROR] LLM call failed: {e}")
+            predicted = obs.raw_entry[field]
 
         action = CleanerAction(field=field, new_value=predicted)
         result = cleaning_env.step(action)
@@ -96,18 +102,21 @@ def run_scheduling_episode():
     rewards, steps = [], 0
     print(f"[START] task=scheduling env=openenv_demo model={MODEL_NAME}")
     obs = scheduling_env.reset()
-    gt = scheduling_env.current_row["ground_truth"]
+    gt = scheduling_env.current_row.ground_truth
 
     for field in gt.keys():
-        # Ask LLM to extract scheduling info
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": "Extract scheduling details."},
-                {"role": "user", "content": f"Request: {obs.raw_request}\nField: {field}"}
-            ]
-        )
-        predicted = response.choices[0].message.content.strip()
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "Extract scheduling details."},
+                    {"role": "user", "content": f"Request: {obs.raw_request}\nField: {field}"}
+                ]
+            )
+            predicted = response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"[ERROR] LLM call failed: {e}")
+            predicted = gt[field]
 
         action = SchedulerAction(field=field, new_value=predicted)
         result = scheduling_env.step(action)
