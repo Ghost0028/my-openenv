@@ -60,7 +60,8 @@ def run_email_episode():
     steps += 1
     rewards.append(result.reward)
     print(f"[STEP] step={steps} action={action.category} reward={result.reward:.2f} done={str(result.done).lower()} error=null")
-    score = min(max(sum(rewards), 0.0), 1.0)
+    epsilon = 1e-6
+    score = min(max(sum(rewards), epsilon), 1 - epsilon)
     success = result.done and score > 0
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
     return score
@@ -93,7 +94,9 @@ def run_cleaning_episode():
         if result.done:
             break
 
-    score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
+    epsilon = 1e-6
+    score = min(max(sum(rewards)/len(gt), epsilon), 1 - epsilon)
+
     success = result.done and score > 0
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
     return score
@@ -126,7 +129,9 @@ def run_scheduling_episode():
         if result.done:
             break
 
-    score = min(max(sum(rewards)/len(gt), 0.0), 1.0)
+    epsilon = 1e-6
+    score = min(max(sum(rewards)/len(gt), epsilon), 1 - epsilon)
+
     success = result.done and score > 0
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={','.join(f'{r:.2f}' for r in rewards)}")
     return score
