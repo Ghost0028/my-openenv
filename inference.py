@@ -69,7 +69,7 @@ def run_cleaning_episode():
     rewards, steps = [], 0
     print(f"[START] task=cleaning env=openenv_demo model={MODEL_NAME}")
     obs = cleaning_env.reset()
-    gt = cleaning_env.current_row.ground_truth
+    gt = cleaning_env.current_row["ground_truth"]
 
     for field in gt.keys():
         try:
