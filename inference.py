@@ -77,7 +77,7 @@ def run_cleaning_episode():
                 model=MODEL_NAME,
                 messages=[
                     {"role": "system", "content": "Normalize the field value."},
-                    {"role": "user", "content": f"Raw entry: {obs.raw_entry[field]}"}
+                    {"role": "user", "content": f"Raw entry:{cleaning_env.current_row["raw_entry"][field]}" }
                 ]
             )
             predicted = response.choices[0].message.content.strip()
